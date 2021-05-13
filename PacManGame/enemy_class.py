@@ -2,44 +2,62 @@ import random
 from settings import *
 from Utilities import *
 
-Vector2 = pygame.math.Vector2
 
-
+# The enemy class, that inherits form the pygame sprite class
 class Enemy(pygame.sprite.Sprite):
+    # the parameters are for the game class, position and the number of the enemy that will then decide what personality the enemy is
     def __init__(self, game, position, enemyNumber):
         super().__init__()
+        # set the class' game variable
         self.Game = game
+        # set the grid position of the enemies to the passed vector2 position
         self.gridPosition = position
+        # set the starting position of the enemy
         self.startingPosition = [position.x, position.y]
+        # set the pixel position
         self.pixelPosition = self.getPixelPosition()
-        self.radius = 10
+        # set the number of the enemy based on the passed number
         self.number = enemyNumber
-        self.colour = self.setColour()
+        # set the personality to the enemy
         self.personality = self.setPersonality()
+        # set the initial direction to 0, 0
         self.direction = Vector2(0, 0)
+        # variable for the target later on that will be assigned to the player
         self.target = None
+        # set the speed of the enemy
         self.speed = self.setSpeed()
+        # lists for the animation sprites
         self.spritesMoveUp = []
-        self.spritesMoveRight = []
-        self.spritesMoveLeft = []
         self.spritesMoveDown = []
+        self.spritesMoveLeft = []
+        self.spritesMoveRight = []
+        # animation speed variable
         self.animationSpeed = .3
+        # load the sprites to the lists
         loadSprites("Presets/EnemySprites/Walk/WalkUp/", self.spritesMoveUp)
         loadSprites("Presets/EnemySprites/Walk/WalkDown/", self.spritesMoveDown)
-        loadSprites("Presets/EnemySprites/Walk/WalkRight/", self.spritesMoveRight)
         loadSprites("Presets/EnemySprites/Walk/WalkLeft/", self.spritesMoveLeft)
+        loadSprites("Presets/EnemySprites/Walk/WalkRight/", self.spritesMoveRight)
+        # set the booleans by default to false
         self.movingUp = False
         self.movingDown = False
         self.movingLeft = False
         self.movingRight = False
+        # set the current sprite to 0 by default
         self.currentSprite = 0
-        self.image = self.spritesMoveLeft[self.currentSprite]
+        # set the default start sprite to be the move right sprite
+        self.image = self.spritesMoveRight[self.currentSprite]
+        # get the rect of the sprite to make the sprite move around
         self.rect = self.image.get_rect()
 
+    # the enemy update
     def Update(self):
+        # sets the target to the player's position
         self.target = self.setTarget()
+        # change the direction of the enemy towards the player
         if self.target != self.gridPosition:
             self.pixelPosition += self.direction * self.speed
+            # move the enemy
             if self.timeToMove():
                 self.move()
 
@@ -49,7 +67,9 @@ class Enemy(pygame.sprite.Sprite):
         self.gridPosition[1] = (self.pixelPosition[
                                     1] - TOP_BOTTOM_PADDING + self.Game.cellHeight // 2) // self.Game.cellHeight + 1
 
+    # the sprite  update
     def update(self):
+        # playing the animation corresponding to the current boolean that is true
         if self.movingUp:
             playWalkUp(self, self.animationSpeed)
         elif self.movingDown:
@@ -59,16 +79,16 @@ class Enemy(pygame.sprite.Sprite):
         elif self.movingRight:
             playWalkRight(self, self.animationSpeed)
 
+        # moving the sprite of the enemy
         self.rect.center = (int(self.pixelPosition.x), int(self.pixelPosition.y))
 
-    def draw(self):
-        self.update()
-
+    # gets the pixel position of the enemy
     def getPixelPosition(self):
         return Vector2((self.gridPosition.x * self.Game.cellWidth) + TOP_BOTTOM_PADDING // 2 + self.Game.cellWidth // 2,
                        (
                                self.gridPosition.y * self.Game.cellHeight) + TOP_BOTTOM_PADDING // 2 + self.Game.cellHeight // 2)
 
+    # I dont know what does that do
     def timeToMove(self):
         if int(self.pixelPosition.x + TOP_BOTTOM_PADDING // 2) % self.Game.cellWidth == 0:
             if self.direction == Vector2(1, 0) or self.direction == Vector2(-1, 0) or self.direction == Vector2(0, 0):
@@ -79,6 +99,7 @@ class Enemy(pygame.sprite.Sprite):
                 return True
         return False
 
+    # sets the target to the player and based based on the personalities
     def setTarget(self):
         if self.personality == "Speedy" or self.personality == "Slow":
             if self.Game.player.gridPosition[0] > CELL_WIDTH // 2 and self.Game.player.gridPosition[
@@ -98,6 +119,7 @@ class Enemy(pygame.sprite.Sprite):
 
             return self.Game.player.gridPosition
         else:
+            # if the enemy personality is not speedy or slow, then the personality is scared and all the calculations bellow are to run in the opposite direction of the player
             if self.Game.player.gridPosition[0] > CELL_WIDTH // 2 and self.Game.player.gridPosition[
                 1] > CELL_HEIGHT // 2:
                 animationBool(self, False, True, False, False)
@@ -117,6 +139,7 @@ class Enemy(pygame.sprite.Sprite):
                 animationBool(self, True, False, False, False)
                 return Vector2(CELL_WIDTH - 2, CELL_HEIGHT - 2)
 
+    # function to move the enemy
     def move(self):
         if self.personality == "Speedy":
             self.direction = self.getPathDirection(self.target)
@@ -130,6 +153,7 @@ class Enemy(pygame.sprite.Sprite):
         if self.personality == "Slow":
             self.direction = self.getPathDirection(self.target)
 
+    # function to set the speed based on the personality
     def setSpeed(self):
         if self.personality in ["Speedy", "Scared"]:
             speed = 2
@@ -138,6 +162,7 @@ class Enemy(pygame.sprite.Sprite):
 
         return speed
 
+    # path finding algorithm part
     def getPathDirection(self, target):
         nextCell = self.findNextCellInPath(target)
         xDirection = nextCell[0] - self.gridPosition[0]
@@ -181,9 +206,13 @@ class Enemy(pygame.sprite.Sprite):
                     target = step["Current"]
                     shortest.insert(0, step["Current"])
         return shortest
+    # end of pathfinding algorithm part
 
+    # function for the random personality enemy
     def getRandomDirection(self):
+        # run indefinitely
         while True:
+            # change randomly t
             number = random.randint(-2, 2)
             if number == -2:
                 xDirection, yDirection = 1, 0
@@ -207,16 +236,7 @@ class Enemy(pygame.sprite.Sprite):
                 break
         return Vector2(xDirection, yDirection)
 
-    def setColour(self):
-        if self.number == 0:
-            return 255, 0, 0
-        if self.number == 1:
-            return 0, 255, 0
-        if self.number == 2:
-            return 0, 0, 255
-        if self.number == 3:
-            return 255, 0, 255
-
+    # set personality for the enemies function based on the personality the enemies would have different paths and speed
     def setPersonality(self):
         if self.number == 0:
             return "Speedy"
@@ -226,4 +246,3 @@ class Enemy(pygame.sprite.Sprite):
             return "Random"
         elif self.number == 3:
             return "Slow"
-
